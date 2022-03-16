@@ -9,7 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
+from PyQt5.QtGui import QIcon
 
 class Ui_Form(object):
     def setupUi(self, Form):
@@ -81,15 +81,16 @@ class Ui_Form(object):
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
-        self.law1.setText(_translate("Form", "TextLabel"))
-        self.law2.setText(_translate("Form", "TextLabel"))
-        self.law3.setText(_translate("Form", "TextLabel"))
-        self.law4.setText(_translate("Form", "TextLabel"))
-        self.law5.setText(_translate("Form", "TextLabel"))
+        Form.setWindowTitle(_translate("Form", "law similarity"))
+        self.law1.setText(_translate("Form", " "))
+        self.law2.setText(_translate("Form", " "))
+        self.law3.setText(_translate("Form", " "))
+        self.law4.setText(_translate("Form", " "))
+        self.law5.setText(_translate("Form", " "))
         self.search_btn.setText(_translate("Form", "조회"))
         self.label.setText(_translate("Form", "키워드"))
 
+        Form.setWindowIcon(QIcon('law.png'))  # 이미지
 
 if __name__ == "__main__":
     import sys
