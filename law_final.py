@@ -1,10 +1,17 @@
 import sys
 from newform import Ui_Form
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QMainWindow
+import pandas as pd
+import json
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
+import pypickle
+from konlpy.tag import Okt
+okt=Okt() #형태소 분해 객체 생성
 
+import json
 
-# import json
-#
 # file_path = r'./data/clean_laws_jo_total.json'
 # with open(file_path, 'r', encoding="UTF-8") as jsonfile:
 #     json_data = json.load(jsonfile)
