@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
@@ -14,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 
+
 form_main = uic.loadUiType("mainwindow.ui")[0]  # main창 불러오기
 form_second = uic.loadUiType("secondwindow3.ui")[0]  # 두번째창 불러오기
 
@@ -25,7 +25,6 @@ def tokenizer(raw, pos = ['Noun', 'Verb', 'Adjective']):
 
 
 tatal_laws_data = pd.read_csv('total.csv')
-
 file_path = r'./data/clean_laws_jo_total.json'
 with open(file_path, 'r', encoding="UTF-8") as jsonfile:
     json_data = json.load(jsonfile)
@@ -33,70 +32,13 @@ laws_data_list = json_data["laws"]
 
 load_tfidf_fit = pypickle.load("tfidf_fit.pickle")
 load_tfidf_vectors = pypickle.load("tfidf_vectors.pickle")
-
-input_text_data = """소방본부장, 소방서장 또는 소방대장은 화재, 재난ㆍ재해, 그 밖의 위급한 상황이 발생한 환장에서 소방활동을 위하여 필요할 때에는 그 관할구역에 살지 않는 사람 또는 그 현장에 있는 사람으로 하여금 사람을 구출하는 일 또는 불을 끄거나 불이 번지지 아니하도록 하는 일을 하게 할 수 있다. 이 경우 소방본부장, 소방서장 또는 소방대장은 소방활동에 필요한 보호장구를 지급하는 등 안전을 위한 조ㅊ를 하여야 한다."""
-
-features = load_tfidf_fit.get_feature_names()
-srch_vector = load_tfidf_fit.transform([input_text_data])
-cosine_similar = linear_kernel(srch_vector, load_tfidf_vectors).flatten()
-sim_rank_idx = cosine_similar.argsort()[::-1]
-
-
-def algorithm():
-    tf_idf_result_index = []  # 실 데이터 인덱스
-    tf_idf_sentences = []  # 결과 조문
-    for i in sim_rank_idx:
-        if cosine_similar[i] > 0.13:
-            tf_idf_result_index.append(i)
-            tf_idf_sentences.append(laws_data_list[i])
-
-    sbert_result_index = []
-
-    embedder = SentenceTransformer("jhgan/ko-sroberta-multitask")
-
-    # TF-IDF 결과 조문을 Corpus로
-    corpus = tf_idf_sentences
-    corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
-
-    # Query sentences:
-    q_list = []
-    q_list.append(input_text_data)
-    queries = q_list
-
-    # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
-    top_k = 20
-    for query in queries:
-        query_embedding = embedder.encode(query, convert_to_tensor=True)
-        cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
-        cos_scores = cos_scores.cpu()
-
-        # We use np.argpartition, to only partially sort the top_k results
-        top_results = np.argpartition(-cos_scores, range(top_k))[0:top_k]
-
-        for idx in top_results[0:top_k]:
-            sbert_result_index.append(tf_idf_result_index[idx])
-
-    result_law_dic = {}  # {"우체국보험특별회계법 시행규칙":[123513,12345,234,123]}
-    for j in sbert_result_index:
-        index_num = int(j)
-        law_name = tatal_laws_data.iloc[index_num]["법령명"]
-        if law_name in result_law_dic:
-            value_list = result_law_dic[law_name]
-            value_list.append(index_num)
-            result_law_dic[law_name] = value_list
-
-        else:
-            result_law_dic[law_name] = [index_num]
-
-    return result_law_dic
-
-
-dic_data = algorithm()
-
+dic_data = {}
 
 class MainWindow(QMainWindow, QWidget, form_main):
+
     def __init__(self):
         super().__init__()
+        self.dic_data_1 = {}
         self.initUIMain()
         self.show()
 
@@ -149,10 +91,16 @@ class MainWindow(QMainWindow, QWidget, form_main):
         self.show()
 
     def input_text(self):
-       self.input_text_data = self.search_law.text()
-       return self.input_text_data
+        global text_data
+        text_data = self.search_law.text()
+        return text_data
 
     def search_laws(self):
+        global dic_data
+        input_text_data = self.input_text()
+        dic_data = algorithm(input_text_data)
+        #self.lawname1 = list(dic_data.keys())[0]
+
         self.lawname1 = list(dic_data.keys())[0]
         self.lawname2 = list(dic_data.keys())[1]
         self.lawname3 = list(dic_data.keys())[2]
@@ -165,6 +113,64 @@ class MainWindow(QMainWindow, QWidget, form_main):
         self.law3_2.setText(self.lawname4)
         self.law3_3.setText(self.lawname5)
 
+#input_text_data =text_data
+#input_text_data = """ 소방 """
+
+
+def algorithm(input_text_data):
+    srch_vector = load_tfidf_fit.transform([input_text_data])
+    cosine_similar = linear_kernel(srch_vector, load_tfidf_vectors).flatten()
+    sim_rank_idx = cosine_similar.argsort()[::-1]
+    tf_idf_result_index = []  # 실 데이터 인덱스
+    tf_idf_sentences = []  # 결과 조문
+    for i in sim_rank_idx:
+        if cosine_similar[i] > 0.13:
+            tf_idf_result_index.append(i)
+            tf_idf_sentences.append(laws_data_list[i])
+
+    sbert_result_index = []
+
+    embedder = SentenceTransformer("jhgan/ko-sroberta-multitask")
+
+    # TF-IDF 결과 조문을 Corpus로
+    corpus = tf_idf_sentences
+    corpus_embeddings = embedder.encode(corpus, convert_to_tensor=True)
+
+    # Query sentences:
+    q_list = []
+    q_list.append(input_text_data)
+    queries = q_list
+
+    # Find the closest 5 sentences of the corpus for each query sentence based on cosine similarity
+    top_k = 20
+    for query in queries:
+        query_embedding = embedder.encode(query, convert_to_tensor=True)
+        cos_scores = util.pytorch_cos_sim(query_embedding, corpus_embeddings)[0]
+        cos_scores = cos_scores.cpu()
+
+        # We use np.argpartition, to only partially sort the top_k results
+        top_results = np.argpartition(-cos_scores, range(top_k))[0:top_k]
+
+        for idx in top_results[0:top_k]:
+            sbert_result_index.append(tf_idf_result_index[idx])
+
+    result_law_dic = {}  # {"우체국보험특별회계법 시행규칙":[123513,12345,234,123]}
+    for j in sbert_result_index:
+        index_num = int(j)
+        law_name = tatal_laws_data.iloc[index_num]["법령명"]
+        if law_name in result_law_dic:
+            value_list = result_law_dic[law_name]
+            value_list.append(index_num)
+            result_law_dic[law_name] = value_list
+
+        else:
+            result_law_dic[law_name] = [index_num]
+
+    return result_law_dic
+
+
+
+
 
 # law1 누르면 나오는 두번째 창
 class SecondWindow(QDialog, QWidget, form_second):
@@ -174,6 +180,7 @@ class SecondWindow(QDialog, QWidget, form_second):
         self.show()  #두번째창 실행
 
     def initUIsecond(self):
+        global dic_data
         self.setupUi(self)
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("Form", "law similarity"))
@@ -183,15 +190,15 @@ class SecondWindow(QDialog, QWidget, form_second):
         self.label.setText(self.lawname_1)
 
         jo_list = list(dic_data.values())[0]
-        text1 = []
+        text = []
         number = len(jo_list)
         for i in range(number):
             texts = tatal_laws_data.iloc[jo_list[i]]["조문내용"].replace('\t',"")
-            text1.append(texts)
+            text.append(texts)
             self.show_laws.setText("")
 
         for j in range(number):
-            self.show_laws.append(text1[j])
+            self.show_laws.append(text[j])
 
         self.back_btn.clicked.connect(self.back_to_main)
 
@@ -215,15 +222,15 @@ class SecondWindow2(QDialog, QWidget, form_second):
         self.label.setText(self.lawname_2)
 
         jo_list = list(dic_data.values())[1]
-        text2 = []
+        text = []
         number = len(jo_list)
         for i in range(number):
-            texts = tatal_laws_data.iloc[jo_list[i]]["조문내용"].replace('\t', "")
-            text2.append(texts)
+            texts = tatal_laws_data.iloc[jo_list[i]]["조문내용"].replace('\t',"")
+            text.append(texts)
             self.show_laws.setText("")
 
         for j in range(number):
-            self.show_laws.append(text2[j])
+            self.show_laws.append(text[j])
 
         self.back_btn.clicked.connect(self.back_to_main)
 
@@ -249,15 +256,15 @@ class SecondWindow3(QDialog, QWidget, form_second):
 
         jo_list = list(dic_data.values())[2]
 
-        text3 = []
+        text = []
         number = len(jo_list)
         for i in range(number):
             texts = tatal_laws_data.iloc[jo_list[i]]["조문내용"].replace('\t',"")
-            text3.append(texts)
+            text.append(texts)
             self.show_laws.setText("")
 
         for j in range(number):
-            self.show_laws.append(text3[j])
+            self.show_laws.append(text[j])
 
         self.back_btn.clicked.connect(self.back_to_main)
 
@@ -282,21 +289,20 @@ class SecondWindow4(QDialog, QWidget, form_second):
         self.label.setText(self.lawname_4)
 
         jo_list = list(dic_data.values())[3]
-        text4 = []
+        text = []
         number = len(jo_list)
         for i in range(number):
             texts = tatal_laws_data.iloc[jo_list[i]]["조문내용"].replace('\t',"")
-            text4.append(texts)
+            text.append(texts)
             self.show_laws.setText("")
 
         for j in range(number):
-            self.show_laws.append(text4[j])
+            self.show_laws.append(text[j])
 
         self.back_btn.clicked.connect(self.back_to_main)
 
     def back_to_main(self):
         self.close()
-
 
 #law5 누르면 나오는 두번째 창
 class SecondWindow5(QDialog, QWidget, form_second):
@@ -315,15 +321,15 @@ class SecondWindow5(QDialog, QWidget, form_second):
         self.label.setText(self.lawname_5)
 
         jo_list = list(dic_data.values())[4]
-        text5 = []
+        text = []
         number = len(jo_list)
         for i in range(number):
             texts = tatal_laws_data.iloc[jo_list[i]]["조문내용"].replace('\t', "")
-            text5.append(texts)
+            text.append(texts)
             self.show_laws.setText("")
 
         for j in range(number):
-            self.show_laws.append(text5[j])
+            self.show_laws.append(text[j])
         self.back_btn.clicked.connect(self.back_to_main)
 
     def back_to_main(self):
@@ -338,9 +344,8 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     ex = MainWindow()
+
     ex.show()
-    # ex2 = SecondWindow()
-    # ex2.show()
     sys.exit(app.exec_())
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
