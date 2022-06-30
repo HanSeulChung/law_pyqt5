@@ -1,5 +1,14 @@
 # law_pyqt5
 
+
+![pyqt_1](https://user-images.githubusercontent.com/94779505/176597984-a1416e92-973e-4d6e-98e3-a5d145311f0f.png)
+
+![pyqt_2](https://user-images.githubusercontent.com/94779505/176597988-0ebf6eb7-5f79-4193-a51b-5d6fd0b2f774.png)
+
+![pyqt_3](https://user-images.githubusercontent.com/94779505/176598007-50b05f55-1311-44b5-b283-80f99133e985.png)
+
+_______________
+
 team project 시각화를 PYQT로 구현했습니다.
 
 대용량 파일 total.csv, tfidf_vector.pickle, clean_laws_jo_total.json 파일들이 필요한데
